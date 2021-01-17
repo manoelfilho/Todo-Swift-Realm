@@ -37,15 +37,23 @@ class TodoListViewController: UITableViewController {
     
     //elemento da célula que será exibido a cada passagem do foreach no array de elementos do tablecontroller
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+                
         let cell = tableView.dequeueReusableCell(withIdentifier: "TodoItemCell", for: indexPath)
+        
         if let item = items?[indexPath.row] {
+        
             cell.textLabel?.text = item.title
+            
             cell.accessoryType = item.done ?
                 .checkmark :
                 .none
+        
         }else{
+        
             cell.textLabel?.text = "Nenhum ítem cadastrado"
+        
         }
+        
         return cell
     }
     
@@ -63,8 +71,8 @@ class TodoListViewController: UITableViewController {
                 print("Error saving item \(error)")
             }
         }
+        
         tableView.reloadData()
-        tableView.deselectRow(at: indexPath, animated: true)
     }
     
     //swipe lateral direito trailingSwipeActionsConfigurationForRowAt
