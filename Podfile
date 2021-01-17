@@ -4,5 +4,6 @@ target 'Todoey' do
 
   # Pods for Todoey
   pod 'RealmSwift'
+  pod 'lottie-ios'
 
 end

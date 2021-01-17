@@ -7,39 +7,45 @@
 //
 
 import UIKit
-import CoreData
+import RealmSwift
 
 class CategoryTableViewController: UITableViewController {
     
-    //lista de categorias para o table View Controller
-    var categoryArray = [Category]()
+    let realm = try! Realm()
     
-    //Primeiro eu preciso do contexto da aplicacao para salvar os dados do core data
-    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    var categories: Results<Category>?
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        //carrega os dados que já existem no core data // se existirem
         self.loadItems()
     }
 
-    //MARK: - Modal para novo item
+    //MARK: - Modal
     
     @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
+        
         var textField  = UITextField()
-        let alert = UIAlertController(title: "Adicione uma nova categoria", message: "Cada categoria pode ter nenhuma ou diversas tarefas", preferredStyle: .alert)
+        
+        let alert = UIAlertController(title: "Adicione uma nova categoria", message: "💁🏻‍♀️", preferredStyle: .alert)
+        
         let action = UIAlertAction(title: "Adicionar", style: .default) { (action) in
-            DispatchQueue.main.async {
                 
-                let category = Category(context: self.context)
-                category.name = textField.text!
-                
-                self.categoryArray.append(category)
-                
-                self.saveData()
-                
-                self.tableView.reloadData()
+            if ( textField.text != ""){
+
+                DispatchQueue.main.async {
+                    let newCategory = Category()
+                    newCategory.name = textField.text!
+
+                    self.saveData(category: newCategory)
+                    
+                    self.tableView.reloadData()
+                }
+                   
             }
+        }
+        
+        let actionCancel = UIAlertAction(title: "Cancelar", style: .destructive) { (action) in
+            self.tableView.reloadData()
         }
         
         alert.addTextField { (alertTextField) in
@@ -47,6 +53,7 @@ class CategoryTableViewController: UITableViewController {
             textField = alertTextField
         }
         
+        alert.addAction(actionCancel)
         alert.addAction(action)
         
         present(alert, animated: true, completion: nil)
@@ -54,22 +61,38 @@ class CategoryTableViewController: UITableViewController {
     
     //método onde informamos o número de linhas que o TableViewListController deve ter
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return self.categoryArray.count
+    
+        //OBS 1 - Tem relação com a OBS 2
+        // categorias podem ser nulas, portanto se nao tiver nada retorna um para o numero de celulas
+        return self.categories?.count ?? 1
+    
     }
     
     //MARK: - TableView Delegate Methods
     
     //elemento da célula que será exibido a cada passagem do foreach no array de elementos do tablecontroller
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        
         let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
-        let category = categoryArray[indexPath.row]
-        cell.textLabel?.text = category.name
+        
+        //OBS 2
+        // se nao existir categorias, colocar um alerta na primeira celula
+        cell.textLabel?.text = categories?[indexPath.row].name ?? "Nenhuma categoria cadastrada"
+        
         return cell
     }
         
     //método executado ao selecionar uma linha do table view
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         performSegue(withIdentifier: "goToItems", sender: self)
+    }
+    
+    //metodo executado antes do performSegue
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        let destinationViewController = segue.destination as! TodoListViewController
+        if let indexPath = tableView.indexPathForSelectedRow {
+            destinationViewController.selectedCategory = categories?[indexPath.row]
+        }
     }
     
     //swipe lateral direito trailingSwipeActionsConfigurationForRowAt
@@ -79,13 +102,18 @@ class CategoryTableViewController: UITableViewController {
         //podemos adicionar acoes para o swipe lateral aqui
         let trash = UIContextualAction(style: .destructive, title: "Remover") { (action, vieew, completionHandler) in
             
-            //remove o elemento do contexto
-            //entao remove do array de dados
-            self.context.delete(self.categoryArray[indexPath.row])
-            self.categoryArray.remove(at: indexPath.row)
+            if let category = self.categories?[indexPath.row] {
+                do{
+                    try self.realm.write{
+                        self.realm.delete(category.items)
+                        self.realm.delete(category)
+                    }
+                }catch{
+                    print("Error removing item \(error)")
+                }
+            }
             
-            //recarrega tela
-            self.loadItems()
+            self.tableView.reloadData()
             
         }
         
@@ -99,28 +127,17 @@ class CategoryTableViewController: UITableViewController {
         
     }
     
-    //metodo executado antes do performSegue
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        let destinationViewController = segue.destination as! TodoListViewController
-        if let indexPath = tableView.indexPathForSelectedRow {
-            destinationViewController.selectedCategory = categoryArray[indexPath.row]
-        }
-    }
-    
     //MARK: -  Data
-    
-    func loadItems(with request: NSFetchRequest<Category> = Category.fetchRequest()) -> Void{
-        do {
-            categoryArray = try context.fetch(request)
-        }catch{
-            print("Error when fetching data \(error)")
-        }
+    func loadItems() {
+        categories = realm.objects(Category.self)
         tableView.reloadData()
     }
         
-    func saveData() -> Void {
+    func saveData(category: Category) -> Void {
         do {
-            try context.save()
+            try realm.write{
+                realm.add(category)
+            }
         }catch{
             print("Error saving context \(error)")
         }
