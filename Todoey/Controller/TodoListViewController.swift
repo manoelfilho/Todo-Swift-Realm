@@ -100,7 +100,7 @@ class TodoListViewController: UITableViewController {
 
         let configuration = UISwipeActionsConfiguration(actions: [trash])
         
-        configuration.performsFirstActionWithFullSwipe = false
+        configuration.performsFirstActionWithFullSwipe = true
 
         return configuration
         
