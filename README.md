@@ -1,4 +1,4 @@
-# Todo-Swift-Realm
+# Lista de tarefas com banco de dados Realm
 
 Lista de tarefas por categorias com filtro e Swipe para cancelamento. Os dados são salvos no telefone com auxílio do banco de dados Realm (https://realm.io/)
 
